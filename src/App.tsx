@@ -105,6 +105,7 @@ import {
 import Alert from "./components/generic/Alert";
 import ConfirmationPopup from "./components/generic/ConfirmationPopup";
 import ExportModal from "./components/generic/ExportModal";
+import DesktopAnnouncementModal from "./components/generic/DesktopAnnouncementModal";
 import ErrorPopup from "./components/generic/LoadSaveErrorPopup"
 // import DonationNotification from "./components/generic/DonationNotification";
 import ResetProgressComfirmationModal from "./components/generic/ResetProgressConfirmationModal";
@@ -1963,6 +1964,7 @@ function App() {
     <UserConfigProvider>
       <Router>
         <AppContent />
+        <DesktopAnnouncementModal />
       </Router>
     </UserConfigProvider>
   );
