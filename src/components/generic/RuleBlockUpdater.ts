@@ -79,12 +79,13 @@ const updateCondition = (
   condition: Condition,
   object: JokerData | EnhancementData | SealData | EditionData
 ) => {
+  const oldConditionId = condition.type
   if (Object.values(condition.params).some(value => typeof value !== "object")) {
     condition.params = convertParamsToObjects(condition.params, object)
   }
-
   condition.type = updateConditionId(condition.type)
-  condition.params = updateConditionParams(condition.type, condition.params, object)
+  condition.params = updateConditionParams(oldConditionId, condition.params)
+  condition.params = updateMissingConditionParams(condition.type, condition.params, object)
 
   return condition
 }
@@ -113,6 +114,20 @@ const updateConditionId = (
 }
 
 const updateConditionParams = (
+  id: string, 
+  params: Record <string, {value: unknown, valueType?: string}>
+): Record <string, {value: unknown, valueType?: string}> => {
+
+  switch (id) {
+    case "probability_succeeded":
+      params["probability_outcome_status"] = params["status"]
+      break
+  }
+  return params
+}
+
+// For filling in any newly added params with blank values on prior effects
+const updateMissingConditionParams = (
   id: string, 
   params: Record <string, {value: unknown, valueType?: string}>,
   object: JokerData | EnhancementData | SealData | EditionData
@@ -255,50 +270,49 @@ const updateEffectParams = (
   itemType: string,
   params: Record <string, {value: unknown, valueType?: string}>
 ): Record <string, {value: unknown, valueType?: string}> => {
-
-  switch (id) {
-    case "destroy_random_cards":
-      params["method"] =  {value: "random", valueType: "text"}
-      break
-    case "destroy_selected_cards":
-      params["method"] =  {value: "selected", valueType: "text"}
-      break
-    case "copy_triggered_card_to_hand":
-    case "copy_played_card_to_hand":
-      params["add_to"] =  {value: "hand", valueType: "text"}
-      break
-    case "copy_triggered_card":
-    case "copy_played_card":
-      params["add_to"] =  {value: "deck", valueType: "text"}
-      break   
-    case "edit_cards_in_hand":
-      params["selection_method"] =  {value: "selected", valueType: "text"}
-      break
-    case "add_card_to_deck":
-      params["location"] =  {value: "deck", valueType: "text"}
-      break
-    case "add_card_to_hand":
-      params["location"] =  {value: "hand", valueType: "text"}
-      break
-    case "destroy_self":
-      if (itemType === "joker") {
-        params["selection_method"] = {value: "self", valueType: "text"}
-      }
-      break
-    case "double_dollars":
-      params["max_earnings"] = {value: params["limit"], valueType: detectValueType(params["limit"])}
-      params["limit_dollars"] = {value: [false, true, false, false], valueType: "checkbox"}
-      break
-    case "edit_selected_joker":
-      params["target"] = {value: "selected_joker", valueType: "context"}
-      break
-    case "add_dollars_from_jokers":
-      params["value"] = {value: "GAMEVAR:all_jokers_sell_value", valueType: "game_var"}
-      break
-    case "win_game":
-      params["win_type"] =  {value: "blind", valueType: "text"}
-      break
-  }
+    switch (id) {
+      case "destroy_random_cards":
+        params["method"] =  {value: "random", valueType: "text"}
+        break
+      case "destroy_selected_cards":
+        params["method"] =  {value: "selected", valueType: "text"}
+        break
+      case "copy_triggered_card_to_hand":
+      case "copy_played_card_to_hand":
+        params["add_to"] =  {value: "hand", valueType: "text"}
+        break
+      case "copy_triggered_card":
+      case "copy_played_card":
+        params["add_to"] =  {value: "deck", valueType: "text"}
+        break   
+      case "edit_cards_in_hand":
+        params["selection_method"] =  {value: "selected", valueType: "text"}
+        break
+      case "add_card_to_deck":
+        params["location"] =  {value: "deck", valueType: "text"}
+        break
+      case "add_card_to_hand":
+        params["location"] =  {value: "hand", valueType: "text"}
+        break
+      case "destroy_self":
+        if (itemType === "joker") {
+          params["selection_method"] = {value: "self", valueType: "text"}
+        }
+        break
+      case "double_dollars":
+        params["max_earnings"] = {value: params["limit"], valueType: detectValueType(params["limit"])}
+        params["limit_dollars"] = {value: [false, true, false, false], valueType: "checkbox"}
+        break
+      case "edit_selected_joker":
+        params["target"] = {value: "selected_joker", valueType: "context"}
+        break
+      case "add_dollars_from_jokers":
+        params["value"] = {value: "GAMEVAR:all_jokers_sell_value", valueType: "game_var"}
+        break
+      case "win_game":
+        params["win_type"] =  {value: "blind", valueType: "text"}
+        break
+    }
   return params
 }
 

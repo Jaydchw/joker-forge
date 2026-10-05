@@ -144,11 +144,31 @@ const ChanceInput: React.FC<ChanceInputProps> = React.memo(
         !value.startsWith("GAMEVAR:") &&
         !value.startsWith("RANGE:")
     );
+    const isGameVariable =
+      typeof value === "string" && value.startsWith("GAMEVAR:");
+
+    const gameVariableMultiplier = isGameVariable
+      ? parseFloat(value.replace("GAMEVAR:", "").split("|")[1] || "1")
+      : 1;
+    const gameVariableStartsFrom = isGameVariable
+      ? parseFloat(value.replace("GAMEVAR:", "").split("|")[2] || "0")
+      : 0;
+
+    const gameVariableId = isGameVariable
+      ? value.replace("GAMEVAR:", "").split("|")[0]
+      : null;
+    const gameVariable = gameVariableId
+        ? getGameVariableById(gameVariableId)
+        : null;
+    const [showStartsFromTooltip, setShowStartsFromTooltip] =
+      React.useState(false);
+    const [showMultiplierTooltip, setShowMultiplierTooltip] =
+      React.useState(false);
+  
     const [isRangeMode, setIsRangeMode] = React.useState(
       typeof value === "string" && value.startsWith("RANGE:")
     );
     const [inputValue, setInputValue] = React.useState("");
-
     const numericValue = typeof value === "number" ? value : 1;
     const actualValue = value || numericValue;
 
@@ -238,6 +258,22 @@ const ChanceInput: React.FC<ChanceInputProps> = React.memo(
       }
     };
 
+    const handleGameVariableChange = (
+      field: "multiplier" | "startsFrom",
+      newValue: string
+    ) => {
+      const parsed = parseFloat(newValue) || 0;
+      if (field === "multiplier") {
+        onChange(
+          {value:`GAMEVAR:${gameVariableId}|${parsed}|${gameVariableStartsFrom}`, valueType: 'game_var'}
+        );
+      } else {
+        onChange(
+          {value:`GAMEVAR:${gameVariableId}|${gameVariableMultiplier}|${parsed}`, valueType: 'game_var'}
+        );
+      }
+    };
+
     return (
       <div className="flex flex-col gap-2 items-center">
         <div className="flex items-center gap-2">
@@ -260,7 +296,7 @@ const ChanceInput: React.FC<ChanceInputProps> = React.memo(
           <button
             onClick={onOpenGameVariablesPanel}
             className={`p-1 rounded transition-colors cursor-pointer ${
-              typeof value === "string" && value.startsWith("GAMEVAR:")
+              isGameVariable
                 ? "bg-mint/20 text-mint"
                 : "bg-black-lighter text-white-darker hover:text-mint"
             }`}
@@ -281,7 +317,80 @@ const ChanceInput: React.FC<ChanceInputProps> = React.memo(
           </button>
         </div>
 
-        {isRangeMode ? (
+        {isGameVariable ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-2 bg-mint/10 border border-mint/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CubeIcon className="h-4 w-4 text-mint" />
+                  <span className="text-mint text-sm font-medium">
+                    {gameVariable?.label || "Unknown Game Variable"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    onChange({value: numericValue, valueType: 'number'});
+                    setInputValue(numericValue.toString());
+                  }}
+                  className="p-1 text-mint hover:text-white transition-colors cursor-pointer"
+                  title="Remove game variable"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-white-light text-sm">Starts From</span>
+                  <div
+                    className="relative"
+                    onMouseEnter={() => setShowStartsFromTooltip(true)}
+                    onMouseLeave={() => setShowStartsFromTooltip(false)}
+                  >
+                    <InformationCircleIcon className="h-4 w-4 text-white-darker hover:text-white-light cursor-help transition-colors" />
+                    {showStartsFromTooltip && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/4 mb-2 px-3 py-2 bg-black-darker border border-black-lighter rounded-lg text-sm text-white-light w-72 z-50 shadow-lg pointer-events-none">
+                        Value that the Game Variable starts from. (e.g. 1 for
+                        XMult)
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <InputField
+                  type="number"
+                  value={gameVariableStartsFrom.toString()}
+                  onChange={(e) =>
+                    handleGameVariableChange("startsFrom", e.target.value)
+                  }
+                  size="sm"
+                />
+              </div>
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-white-light text-sm">Multiplier</span>
+                  <div
+                    className="relative"
+                    onMouseEnter={() => setShowMultiplierTooltip(true)}
+                    onMouseLeave={() => setShowMultiplierTooltip(false)}
+                  >
+                    <InformationCircleIcon className="h-4 w-4 text-white-darker hover:text-white-light cursor-help transition-colors" />
+                    {showMultiplierTooltip && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/4 mb-2 px-3 py-2 bg-black-darker border border-black-lighter rounded-lg text-sm text-white-light w-72 z-50 shadow-lg pointer-events-none">
+                        Factor that the Game Variable with multiply with /
+                        increment by. (e.g. 0.1 for XMult)
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <InputField
+                  type="number"
+                  value={gameVariableMultiplier.toString()}
+                  onChange={(e) =>
+                    handleGameVariableChange("multiplier", e.target.value)
+                  }
+                  size="sm"
+                />
+              </div>
+            </div>
+          ) : isRangeMode ? (
           <div className="flex items-center gap-2 w-full">
             <InputField
               type="number"
@@ -1200,12 +1309,31 @@ const Inspector: React.FC<InspectorProps> = ({
           onGameVariableApplied();
         }
       } else if (selectedItem.type === "randomgroup" && selectedRandomGroup) {
-        onUpdateRandomGroup(selectedRule?.id || "", selectedRandomGroup.id, {
-          chance_numerator: {
-            value: `GAMEVAR:${selectedGameVariable.id}|1|0`,
-            valueType: "game_var",
-        }});
-        onGameVariableApplied();
+        console.log(selectedRandomGroup)
+        if (selectedRandomGroup.chance_numerator.valueType !== "game_var") {
+          onUpdateRandomGroup(selectedRule?.id || "", selectedRandomGroup.id, {
+            chance_numerator: {
+              value: `GAMEVAR:${selectedGameVariable.id}|1|0`,
+              valueType: "game_var",
+            },
+            chance_denominator: {
+              value: selectedRandomGroup.chance_denominator.value,
+              valueType: selectedRandomGroup.chance_denominator.valueType,
+            }
+        });
+          onGameVariableApplied();
+        } else {
+          onUpdateRandomGroup(selectedRule?.id || "", selectedRandomGroup.id, {
+            chance_denominator: {
+              value: `GAMEVAR:${selectedGameVariable.id}|1|0`,
+              valueType: "game_var",
+            },
+            chance_numerator: {
+              value: selectedRandomGroup.chance_numerator.value,
+              valueType: selectedRandomGroup.chance_numerator.valueType,
+            }});
+          onGameVariableApplied();
+        }
       } else if (selectedItem.type === "loopgroup" && selectedLoopGroup) {
         onUpdateLoopGroup(selectedRule?.id || "", selectedLoopGroup.id, {
           repetitions: {

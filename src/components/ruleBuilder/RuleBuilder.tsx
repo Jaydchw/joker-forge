@@ -558,6 +558,9 @@ const RuleBuilder: React.FC<RuleBuilderProps> = ({
       title = `${prefix}Card Suit = ${suit}`;
       processedParams.add("specific_suit");
       processedParams.add("suit_group");
+    } else if (params.probability_outcome_status) {
+      title = `Probability ${params.probability_outcome_status}`;
+      processedParams.add("probability_outcome_status");
     } else if (!isCondition && params.operation && params.value !== undefined) {
       const operationMap: { [key: string]: string } = {
         add: "+",

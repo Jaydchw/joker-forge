@@ -260,12 +260,12 @@ const generateSingleJokerCode = (
         if (rule.trigger === 'round_end') {
           blindRewards.push({
             condition: generateConditionChain(rule, 'joker', joker),
-            effect: valueCode.replace('ability', 'config'),
+            effect: valueCode,
           })
         } else if (rule.trigger === 'boss_defeated') {
           bossBlindRewards.push({
             condition: generateConditionChain(rule, 'joker', joker),
-            effect: valueCode.replace('ability', 'config'),
+            effect: valueCode,
           })
         }
         configVars.push(...configVariables)
@@ -410,7 +410,7 @@ const generateSingleJokerCode = (
 
   if (blindRewards.length > 0 || bossBlindRewards.length > 0) {
     let blindRewardCode = `
-    calc_dollar_bonus = function(card)
+    calc_dollar_bonus = function(self, card)
       local blind_reward = 0`
 
     if (bossBlindRewards.length > 0) {
