@@ -1,5 +1,7 @@
 # I highly recommend checking out the actively developed [JokerForge Desktop](https://github.com/Jaydchw/joker-forge-desktop)
 
+**Joker Forge and Joker Forge Desktop developers have used AI coding tools to assist with development. This is a disclaimer**
+
 # Joker Forge 
 
 A web app that allows you to make Balatro Jokers using Steammodded with ease. It aims to lower the barrier to entry for mod creation, moving beyond simple stat adjustments to enable the creation of truly unique and complex Joker behaviors, all without requiring direct Lua scripting knowledge from the user. The core philosophy is abstraction and empowerment: abstracting the underlying SMODS code into intuitive visual components, thereby empowering users to translate their creative gameplay ideas into functional mods.
