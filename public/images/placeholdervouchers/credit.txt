@@ -1,6 +1,4 @@
 1:Cavo
-2:Cebee
-3:Cebee
 4:ButterStutter
 5:ButterStutter
 6:ButterStutter

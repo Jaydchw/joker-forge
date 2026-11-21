@@ -1,3 +1,4 @@
+import { getRandomPlaceholder } from "../data/placeholderArt";
 import React, { useState, useMemo, useEffect, useContext } from "react";
 import ReactDOM from "react-dom";
 import {
@@ -45,113 +46,6 @@ type SortOption = {
   sortFn: (a: DeckData, b: DeckData) => number;
   ascText: string,
   descText: string,
-};
-
-let availablePlaceholders: string[] | null = null;
-let upscaledPlaceholders: string[] | null = null;
-
-const upscaleImage = (imageSrc: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      if (img.width === 71 && img.height === 95) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        canvas.width = 142;
-        canvas.height = 190;
-
-        if (ctx) {
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 0, 0, 142, 190);
-        }
-
-        resolve(canvas.toDataURL("image/png"));
-      } else {
-        resolve(imageSrc);
-      }
-    };
-    img.onerror = () => resolve(imageSrc);
-    img.src = imageSrc;
-  });
-};
-
-const getRandomPlaceholderDeck = async (): Promise<{
-  imageData: string;
-  creditIndex?: number;
-}> => {
-  if (upscaledPlaceholders && upscaledPlaceholders.length > 0) {
-    const randomIndex = Math.floor(Math.random() * upscaledPlaceholders.length);
-    const imagePath = availablePlaceholders?.[randomIndex];
-    const match = imagePath?.match(/placeholder-deck-(\d+)\.png/);
-    const imageNumber = match ? parseInt(match[1], 10) : randomIndex + 1;
-
-    return {
-      imageData: upscaledPlaceholders[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  if (availablePlaceholders && availablePlaceholders.length > 0) {
-    const upscaled = await Promise.all(
-      availablePlaceholders.map((placeholder) => upscaleImage(placeholder))
-    );
-    upscaledPlaceholders = upscaled;
-    const randomIndex = Math.floor(Math.random() * upscaled.length);
-    const match = availablePlaceholders[randomIndex].match(
-      /placeholder-deck-(\d+)\.png/
-    );
-    const imageNumber = match ? parseInt(match[1], 10) : 1;
-
-    return {
-      imageData: upscaled[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  const checkImage = (src: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = src;
-    });
-  };
-
-  const placeholders: string[] = [];
-  let counter = 1;
-  let keepChecking = true;
-
-  while (keepChecking) {
-    const imagePath = `/images/placeholderdecks/placeholder-deck-${counter}.png`;
-
-    if (await checkImage(imagePath)) {
-      placeholders.push(imagePath);
-      counter++;
-    } else {
-      keepChecking = false;
-    }
-  }
-
-  availablePlaceholders = placeholders;
-
-  if (placeholders.length === 0) {
-    return { imageData: "/images/placeholder-deck.png" };
-  }
-
-  const upscaled = await Promise.all(
-    placeholders.map((placeholder) => upscaleImage(placeholder))
-  );
-  upscaledPlaceholders = upscaled;
-
-  const randomIndex = Math.floor(Math.random() * upscaled.length);
-  const match = placeholders[randomIndex].match(/placeholder-deck-(\d+)\.png/);
-  const imageNumber = match ? parseInt(match[1], 15) : 1;
-
-  return {
-    imageData: upscaled[randomIndex],
-    creditIndex: imageNumber,
-  };
 };
 
 const isPlaceholderDeck = (imagePath: string): boolean => {
@@ -259,7 +153,7 @@ const DecksPage: React.FC<DecksPageProps> = ({
     }, [showSortMenu]);
 
   const handleAddNewDeck = async () => {
-    const placeholderResult = await getRandomPlaceholderDeck();
+    const placeholderResult = await getRandomPlaceholder("deck");
 
     const newDeck: DeckData = {
       objectType: "deck",
@@ -328,7 +222,7 @@ const DecksPage: React.FC<DecksPageProps> = ({
   const handleDuplicateDeck = async (deck: DeckData) => {
     const dupeName = getObjectName(deck,decks)
     if (isPlaceholderDeck(deck.imagePreview)) {
-      const placeholderResult = await getRandomPlaceholderDeck();
+      const placeholderResult = await getRandomPlaceholder("deck");
       const duplicatedDeck: DeckData = {
         ...deck,
         id: crypto.randomUUID(),
@@ -471,7 +365,7 @@ const handleSortDirectionToggle = () => {
             <div className="flex items-center gap-6 text-white-darker text-sm">
               <div className="flex items-center">
                 <DocumentTextIcon className="h-4 w-4 mr-2 text-mint" />
-                {modName} • {filteredAndSortedDecks.length} of {decks.length}{" "}
+                {modName} â€¢ {filteredAndSortedDecks.length} of {decks.length}{" "}
                 deck{decks.length !== 1 ? "s" : ""}
               </div>
             </div>

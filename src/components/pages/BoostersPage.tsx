@@ -1,3 +1,4 @@
+import { getRandomPlaceholder } from "../data/placeholderArt";
 import React, { useState, useMemo, useEffect, useRef, useContext } from "react";
 import ReactDOM from "react-dom";
 import {
@@ -550,50 +551,6 @@ type SortOption = {
   descText: string,
 };
 
-const getRandomPlaceholderBooster = async (): Promise<{
-  imageData: string;
-  creditIndex?: number;
-}> => {
-  const checkImage = (src: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = src;
-    });
-  };
-
-  const placeholders: string[] = [];
-  let counter = 1;
-  let keepChecking = true;
-
-  while (keepChecking) {
-    const imagePath = `/images/placeholderboosters/placeholder-booster-${counter}.png`;
-
-    if (await checkImage(imagePath)) {
-      placeholders.push(imagePath);
-      counter++;
-    } else {
-      keepChecking = false;
-    }
-  }
-
-  if (placeholders.length === 0) {
-    return { imageData: "/images/placeholder-booster.png" };
-  }
-
-  const randomIndex = Math.floor(Math.random() * placeholders.length);
-  const match = placeholders[randomIndex].match(
-    /placeholder-booster-(\d+)\.png/
-  );
-  const imageNumber = match ? parseInt(match[1], 10) : 1;
-
-  return {
-    imageData: placeholders[randomIndex],
-    creditIndex: imageNumber,
-  };
-};
-
 const isPlaceholderBooster = (imagePath: string): boolean => {
   return (
     imagePath.includes("/images/placeholderboosters/") ||
@@ -724,7 +681,7 @@ const BoostersPage: React.FC<BoostersPageProps> = ({
   }, [showSortMenu]);
 
   const handleAddNewBooster = async () => {
-    const placeholderResult = await getRandomPlaceholderBooster();
+    const placeholderResult = await getRandomPlaceholder("booster");
     const key = modPrefix + "_boosters";
 
     const newBooster: BoosterData = {
@@ -864,7 +821,7 @@ const BoostersPage: React.FC<BoostersPageProps> = ({
   const handleDuplicateBooster = async (booster: BoosterData) => {
     const dupeName = slugify(getObjectName(booster,boosters))
     if (isPlaceholderBooster(booster.imagePreview)) {
-      const placeholderResult = await getRandomPlaceholderBooster();
+      const placeholderResult = await getRandomPlaceholder("booster");
       const duplicatedBooster: BoosterData = {
         ...booster,
         id: crypto.randomUUID(),
@@ -977,7 +934,7 @@ const BoostersPage: React.FC<BoostersPageProps> = ({
             <div className="flex items-center gap-6 text-white-darker text-sm">
               <div className="flex items-center">
                 <GiftIcon className="h-4 w-4 mr-2 text-mint" />
-                {modName} • {filteredAndSortedBoosters.length} of{" "}
+                {modName} â€¢ {filteredAndSortedBoosters.length} of{" "}
                 {boosters.length} booster
                 {boosters.length !== 1 ? "s" : ""}
               </div>

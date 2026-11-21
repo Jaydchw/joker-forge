@@ -1,3 +1,4 @@
+import { getRandomPlaceholder } from "../data/placeholderArt";
 import React, { useState, useMemo, useEffect, useContext } from "react";
 import ReactDOM from "react-dom";
 import {
@@ -571,115 +572,6 @@ type SortOption<T = ConsumableData | ConsumableSetData> = {
   descText: string,
 };
 
-let availablePlaceholders: string[] | null = null;
-let upscaledPlaceholders: string[] | null = null;
-
-const upscaleImage = (imageSrc: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      if (img.width === 71 && img.height === 95) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        canvas.width = 142;
-        canvas.height = 190;
-
-        if (ctx) {
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 0, 0, 142, 190);
-        }
-
-        resolve(canvas.toDataURL("image/png"));
-      } else {
-        resolve(imageSrc);
-      }
-    };
-    img.onerror = () => resolve(imageSrc);
-    img.src = imageSrc;
-  });
-};
-
-const getRandomPlaceholderConsumable = async (): Promise<{
-  imageData: string;
-  creditIndex?: number;
-}> => {
-  if (upscaledPlaceholders && upscaledPlaceholders.length > 0) {
-    const randomIndex = Math.floor(Math.random() * upscaledPlaceholders.length);
-    const imagePath = availablePlaceholders?.[randomIndex];
-    const match = imagePath?.match(/placeholder-consumable-(\d+)\.png/);
-    const imageNumber = match ? parseInt(match[1], 10) : randomIndex + 1;
-
-    return {
-      imageData: upscaledPlaceholders[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  if (availablePlaceholders && availablePlaceholders.length > 0) {
-    const upscaled = await Promise.all(
-      availablePlaceholders.map((placeholder) => upscaleImage(placeholder))
-    );
-    upscaledPlaceholders = upscaled;
-    const randomIndex = Math.floor(Math.random() * upscaled.length);
-    const match = availablePlaceholders[randomIndex].match(
-      /placeholder-consumable-(\d+)\.png/
-    );
-    const imageNumber = match ? parseInt(match[1], 10) : 1;
-
-    return {
-      imageData: upscaled[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  const checkImage = (src: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = src;
-    });
-  };
-
-  const placeholders: string[] = [];
-  let counter = 1;
-  let keepChecking = true;
-
-  while (keepChecking) {
-    const imagePath = `/images/placeholderconsumables/placeholder-consumable-${counter}.png`;
-
-    if (await checkImage(imagePath)) {
-      placeholders.push(imagePath);
-      counter++;
-    } else {
-      keepChecking = false;
-    }
-  }
-
-  availablePlaceholders = placeholders;
-
-  if (placeholders.length === 0) {
-    return { imageData: "/images/placeholder-consumable.png" };
-  }
-
-  const upscaled = await Promise.all(
-    placeholders.map((placeholder) => upscaleImage(placeholder))
-  );
-  upscaledPlaceholders = upscaled;
-
-  const randomIndex = Math.floor(Math.random() * upscaled.length);
-  const match = placeholders[randomIndex].match(
-    /placeholder-consumable-(\d+)\.png/
-  );
-  const imageNumber = match ? parseInt(match[1], 15) : 1;
-
-  return {
-    imageData: upscaled[randomIndex],
-    creditIndex: imageNumber,
-  };
-};
-
 const isPlaceholderConsumable = (imagePath: string): boolean => {
   return (
     imagePath.includes("/images/placeholderconsumables/") ||
@@ -877,7 +769,7 @@ const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
   };
 
   const handleAddNewConsumable = async () => {
-    const placeholderResult = await getRandomPlaceholderConsumable();
+    const placeholderResult = await getRandomPlaceholder("consumable");
 
     const newConsumable: ConsumableData = {
       id: crypto.randomUUID(),
@@ -1057,7 +949,7 @@ const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
   const handleDuplicateConsumable = async (consumable: ConsumableData) => {
     const dupeName = slugify(getObjectName(consumable,consumables))
     if (isPlaceholderConsumable(consumable.imagePreview)) {
-      const placeholderResult = await getRandomPlaceholderConsumable();
+      const placeholderResult = await getRandomPlaceholder("consumable");
       const duplicatedConsumable: ConsumableData = {
         ...consumable,
         id: crypto.randomUUID(),
@@ -1276,7 +1168,7 @@ const ConsumablesPage: React.FC<ConsumablesPageProps> = ({
                 ) : (
                   <SwatchIcon className="h-4 w-4 mr-2 text-mint" />
                 )}
-                {modName} •{" "}
+                {modName} â€¢{" "}
                 {activeTab === "consumables"
                   ? `${filteredAndSortedConsumables.length} of ${
                       consumables.length

@@ -1,3 +1,4 @@
+import { getRandomPlaceholder } from "../data/placeholderArt";
 import React, { useState, useMemo, useEffect, useContext } from "react";
 import ReactDOM from "react-dom";
 import {
@@ -47,113 +48,6 @@ type SortOption = {
   sortFn: (a: JokerData, b: JokerData) => number;
   ascText: string;
   descText: string;
-};
-
-let availablePlaceholders: string[] | null = null;
-let upscaledPlaceholders: string[] | null = null;
-
-const upscaleImage = (imageSrc: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      if (img.width === 71 && img.height === 95) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        canvas.width = 142;
-        canvas.height = 190;
-
-        if (ctx) {
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 0, 0, 142, 190);
-        }
-
-        resolve(canvas.toDataURL("image/png"));
-      } else {
-        resolve(imageSrc);
-      }
-    };
-    img.onerror = () => resolve(imageSrc);
-    img.src = imageSrc;
-  });
-};
-
-const getRandomPlaceholderJoker = async (): Promise<{
-  imageData: string;
-  creditIndex?: number;
-}> => {
-  if (upscaledPlaceholders && upscaledPlaceholders.length > 0) {
-    const randomIndex = Math.floor(Math.random() * upscaledPlaceholders.length);
-    const imagePath = availablePlaceholders?.[randomIndex];
-    const match = imagePath?.match(/placeholder-joker-(\d+)\.png/);
-    const imageNumber = match ? parseInt(match[1], 10) : randomIndex + 1;
-
-    return {
-      imageData: upscaledPlaceholders[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  if (availablePlaceholders && availablePlaceholders.length > 0) {
-    const upscaled = await Promise.all(
-      availablePlaceholders.map((placeholder) => upscaleImage(placeholder))
-    );
-    upscaledPlaceholders = upscaled;
-    const randomIndex = Math.floor(Math.random() * upscaled.length);
-    const match = availablePlaceholders[randomIndex].match(
-      /placeholder-joker-(\d+)\.png/
-    );
-    const imageNumber = match ? parseInt(match[1], 10) : 1;
-
-    return {
-      imageData: upscaled[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  const checkImage = (src: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = src;
-    });
-  };
-
-  const placeholders: string[] = [];
-  let counter = 1;
-  let keepChecking = true;
-
-  while (keepChecking) {
-    const imagePath = `/images/placeholderjokers/placeholder-joker-${counter}.png`;
-
-    if (await checkImage(imagePath)) {
-      placeholders.push(imagePath);
-      counter++;
-    } else {
-      keepChecking = false;
-    }
-  }
-
-  availablePlaceholders = placeholders;
-
-  if (placeholders.length === 0) {
-    return { imageData: "/images/placeholder-joker.png" };
-  }
-
-  const upscaled = await Promise.all(
-    placeholders.map((placeholder) => upscaleImage(placeholder))
-  );
-  upscaledPlaceholders = upscaled;
-
-  const randomIndex = Math.floor(Math.random() * upscaled.length);
-  const match = placeholders[randomIndex].match(/placeholder-joker-(\d+)\.png/);
-  const imageNumber = match ? parseInt(match[1], 15) : 1;
-
-  return {
-    imageData: upscaled[randomIndex],
-    creditIndex: imageNumber,
-  };
 };
 
 const isPlaceholderJoker = (imagePath: string): boolean => {
@@ -321,7 +215,7 @@ const JokersPage: React.FC<JokersPageProps> = ({
   }, [showFilters]);
 
   const handleAddNewJoker = async () => {
-    const placeholderResult = await getRandomPlaceholderJoker();
+    const placeholderResult = await getRandomPlaceholder("joker");
     const modPool = modPrefix+'_jokers'
     const newJoker: JokerData = {
       objectType: "joker",
@@ -408,7 +302,7 @@ const JokersPage: React.FC<JokersPageProps> = ({
   const handleDuplicateJoker = async (joker: JokerData) => {
     const dupeName = slugify(getObjectName(joker,jokers))
     if (isPlaceholderJoker(joker.imagePreview)) {
-      const placeholderResult = await getRandomPlaceholderJoker();
+      const placeholderResult = await getRandomPlaceholder("joker");
       const duplicatedJoker: JokerData = {
         ...joker,
         id: crypto.randomUUID(),
@@ -603,7 +497,7 @@ const JokersPage: React.FC<JokersPageProps> = ({
             <div className="flex items-center gap-6 text-white-darker text-sm">
               <div className="flex items-center">
                 <DocumentTextIcon className="h-4 w-4 mr-2 text-mint" />
-                {modName} • {filteredAndSortedJokers.length} of {jokers.length}{" "}
+                {modName} â€¢ {filteredAndSortedJokers.length} of {jokers.length}{" "}
                 joker{jokers.length !== 1 ? "s" : ""}
               </div>
             </div>

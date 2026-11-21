@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { XMarkIcon, PhotoIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { GameObjectData } from "../data/BalatroUtils";
+import { getPlaceholderCredits, placeholderSrc, type PlaceholderType } from "../data/placeholderArt";
 
 interface PlaceholderPickerModalProps {
-  type: "joker" | "consumable" | "booster" | "enhancement" | "seal" | "voucher" | "deck";
+  type: PlaceholderType;
   isOpen: boolean;
   onClose: () => void;
   onSelect: (index: number, src: string) => void;
@@ -19,20 +19,19 @@ const TYPES: PlaceholderPickerModalProps["type"][] = [
   "deck",
 ];
 
-const DIRS: Record<PlaceholderPickerModalProps["type"], { dir: string; base: string; label: string }> = {
-  joker:        { dir: "/images/placeholderjokers",       base: "placeholder-joker",        label: "Jokers" },
-  consumable:   { dir: "/images/placeholderconsumables",  base: "placeholder-consumable",   label: "Consumables" },
-  booster:      { dir: "/images/placeholderboosters",     base: "placeholder-booster",      label: "Boosters" },
-  enhancement:  { dir: "/images/placeholderenhancements", base: "placeholder-enhancement",  label: "Enhancements" },
-  seal:         { dir: "/images/placeholderseals",        base: "placeholder-seal",         label: "Seals" },
-  voucher:      { dir: "/images/placeholdervouchers",     base: "placeholder-voucher",      label: "Vouchers" },
-  deck:        { dir: "/images/placeholderdecks",     base: "placeholder-deck",      label: "Decks" },
+const labels: Record<PlaceholderType, string> = {
+  joker: "Jokers",
+  consumable: "Consumables",
+  booster: "Boosters",
+  enhancement: "Enhancements",
+  seal: "Seals",
+  voucher: "Vouchers",
+  deck: "Decks",
 };
 
 const PlaceholderPickerModal: React.FC<PlaceholderPickerModalProps> = ({ type, isOpen, onClose, onSelect }) => {
   const [activeType, setActiveType] = useState<PlaceholderPickerModalProps["type"]>(type);
-  const [credits, setCredits] = useState<Record<number, string>>({});
-  const [loading, setLoading] = useState(false);
+  const credits = getPlaceholderCredits(activeType);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -50,37 +49,6 @@ const PlaceholderPickerModal: React.FC<PlaceholderPickerModalProps> = ({ type, i
 
   useEffect(() => {
     if (!isOpen) return;
-    const controller = new AbortController();
-    const run = async () => {
-      setLoading(true);
-      try {
-        const { dir } = DIRS[activeType];
-        const res = await fetch(`${dir}/credit.txt`, { signal: controller.signal });
-        const text = await res.text();
-        const map: Record<number, string> = {};
-        text.split("\n").forEach((line) => {
-          const t = line.trim();
-          if (!t || !t.includes(":")) return;
-          const [idx, name] = t.split(":");
-          const n = parseInt((idx || "").trim(), 10);
-          if (!Number.isNaN(n)) map[n] = (name || "").trim();
-        });
-        setCredits(map);
-      } catch (e) {
-        if ((e as GameObjectData)?.name !== "AbortError") {
-          console.error("Failed to load placeholder credits", e);
-          setCredits({});
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-    return () => controller.abort();
-  }, [isOpen, activeType]);
-
-  useEffect(() => {
-    if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -88,17 +56,12 @@ const PlaceholderPickerModal: React.FC<PlaceholderPickerModalProps> = ({ type, i
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
-  const { dir, base, } = DIRS[activeType];
-
   const filteredIndices = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const all = Object.keys(credits)
-      .map((k) => parseInt(k, 10))
-      .filter((n) => !Number.isNaN(n))
-      .sort((a, b) => a - b);
+    const all = Array.from(credits.keys()).sort((a, b) => a - b);
 
     if (!q) return all;
-    return all.filter((i) => (credits[i] || "").toLowerCase().includes(q) || String(i).includes(q));
+    return all.filter((i) => (credits.get(i) || "").toLowerCase().includes(q) || String(i).includes(q));
   }, [credits, query]);
 
   return (
@@ -146,7 +109,7 @@ const PlaceholderPickerModal: React.FC<PlaceholderPickerModalProps> = ({ type, i
                     : "bg-black border-black-lighter text-white-darker hover:border-mint/40 hover:text-white"
                 ].join(" ")}
               >
-                {DIRS[t].label}
+                {labels[t]}
               </button>
             ))}
           </div>
@@ -163,14 +126,12 @@ const PlaceholderPickerModal: React.FC<PlaceholderPickerModalProps> = ({ type, i
         </div>
 
         <div className="p-4 overflow-y-auto flex-1 min-h-0">
-          {loading ? (
-            <div className="text-white-darker text-sm">Loading…</div>
-          ) : filteredIndices.length === 0 ? (
+          {filteredIndices.length === 0 ? (
             <div className="text-white-darker text-sm">No placeholders match your search.</div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {filteredIndices.map((index) => {
-                const src = `${dir}/${base}-${index}.png`;
+                const src = placeholderSrc(activeType, index);
                 return (
                   <button
                     key={index}
@@ -185,7 +146,7 @@ const PlaceholderPickerModal: React.FC<PlaceholderPickerModalProps> = ({ type, i
                       loading="lazy"
                     />
                     <div className="absolute inset-x-0 bottom-0 text-[10px] text-white-darker bg-black/60 px-1 py-1 text-left">
-                      {credits[index] || `Placeholder ${index}`}
+                      {credits.get(index) || `Placeholder ${index}`}
                     </div>
                   </button>
                 );

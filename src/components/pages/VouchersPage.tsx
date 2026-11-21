@@ -1,3 +1,4 @@
+import { getRandomPlaceholder } from "../data/placeholderArt";
 import React, { useState, useMemo, useEffect, useContext } from "react";
 import ReactDOM from "react-dom";
 import {
@@ -45,113 +46,6 @@ type SortOption = {
   sortFn: (a: VoucherData, b: VoucherData) => number;
   ascText: string,
   descText: string,
-};
-
-let availablePlaceholders: string[] | null = null;
-let upscaledPlaceholders: string[] | null = null;
-
-const upscaleImage = (imageSrc: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      if (img.width === 71 && img.height === 95) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        canvas.width = 142;
-        canvas.height = 190;
-
-        if (ctx) {
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 0, 0, 142, 190);
-        }
-
-        resolve(canvas.toDataURL("image/png"));
-      } else {
-        resolve(imageSrc);
-      }
-    };
-    img.onerror = () => resolve(imageSrc);
-    img.src = imageSrc;
-  });
-};
-
-const getRandomPlaceholderVoucher = async (): Promise<{
-  imageData: string;
-  creditIndex?: number;
-}> => {
-  if (upscaledPlaceholders && upscaledPlaceholders.length > 0) {
-    const randomIndex = Math.floor(Math.random() * upscaledPlaceholders.length);
-    const imagePath = availablePlaceholders?.[randomIndex];
-    const match = imagePath?.match(/placeholder-voucher-(\d+)\.png/);
-    const imageNumber = match ? parseInt(match[1], 10) : randomIndex + 1;
-
-    return {
-      imageData: upscaledPlaceholders[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  if (availablePlaceholders && availablePlaceholders.length > 0) {
-    const upscaled = await Promise.all(
-      availablePlaceholders.map((placeholder) => upscaleImage(placeholder))
-    );
-    upscaledPlaceholders = upscaled;
-    const randomIndex = Math.floor(Math.random() * upscaled.length);
-    const match = availablePlaceholders[randomIndex].match(
-      /placeholder-voucher-(\d+)\.png/
-    );
-    const imageNumber = match ? parseInt(match[1], 10) : 1;
-
-    return {
-      imageData: upscaled[randomIndex],
-      creditIndex: imageNumber,
-    };
-  }
-
-  const checkImage = (src: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = src;
-    });
-  };
-
-  const placeholders: string[] = [];
-  let counter = 1;
-  let keepChecking = true;
-
-  while (keepChecking) {
-    const imagePath = `/images/placeholdervouchers/placeholder-voucher-${counter}.png`;
-
-    if (await checkImage(imagePath)) {
-      placeholders.push(imagePath);
-      counter++;
-    } else {
-      keepChecking = false;
-    }
-  }
-
-  availablePlaceholders = placeholders;
-
-  if (placeholders.length === 0) {
-    return { imageData: "/images/placeholder-voucher.png" };
-  }
-
-  const upscaled = await Promise.all(
-    placeholders.map((placeholder) => upscaleImage(placeholder))
-  );
-  upscaledPlaceholders = upscaled;
-
-  const randomIndex = Math.floor(Math.random() * upscaled.length);
-  const match = placeholders[randomIndex].match(/placeholder-voucher-(\d+)\.png/);
-  const imageNumber = match ? parseInt(match[1], 15) : 1;
-
-  return {
-    imageData: upscaled[randomIndex],
-    creditIndex: imageNumber,
-  };
 };
 
 const isPlaceholderVoucher = (imagePath: string): boolean => {
@@ -266,7 +160,7 @@ const VouchersPage: React.FC<VouchersPageProps> = ({
   }, [showSortMenu]);
 
   const handleAddNewVoucher = async () => {
-    const placeholderResult = await getRandomPlaceholderVoucher();
+    const placeholderResult = await getRandomPlaceholder("voucher");
 
     const newVoucher: VoucherData = {
       objectType: "voucher",
@@ -336,7 +230,7 @@ const VouchersPage: React.FC<VouchersPageProps> = ({
   const handleDuplicateVoucher = async (voucher: VoucherData) => {
     const dupeName = getObjectName(voucher,vouchers)
     if (isPlaceholderVoucher(voucher.imagePreview)) {
-      const placeholderResult = await getRandomPlaceholderVoucher();
+      const placeholderResult = await getRandomPlaceholder("voucher");
       const duplicatedVoucher: VoucherData = {
         ...voucher,
         id: crypto.randomUUID(),
@@ -477,7 +371,7 @@ const VouchersPage: React.FC<VouchersPageProps> = ({
             <div className="flex items-center gap-6 text-white-darker text-sm">
               <div className="flex items-center">
                 <DocumentTextIcon className="h-4 w-4 mr-2 text-mint" />
-                {modName} • {filteredAndSortedVouchers.length} of {vouchers.length}{" "}
+                {modName} â€¢ {filteredAndSortedVouchers.length} of {vouchers.length}{" "}
                 voucher{vouchers.length !== 1 ? "s" : ""}
               </div>
             </div>
